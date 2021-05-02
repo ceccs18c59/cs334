@@ -1,62 +1,41 @@
-#include <stdlib.h>
+// Client side C/C++ program to demonstrate Socket programming
 #include <stdio.h>
-#include <unistd.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 #include <string.h>
-
 #define PORT 8080
 
-int main(int argc, char *argv[])
+int main(int argc, char const *argv[])
 {
-    int serverDescriptor, newSocket, valueRead;
-    struct sockaddr_in address;
-    int opt = 1;
-    int addrLength = sizeof(address);
+    int sock = 0, valread;
+    struct sockaddr_in serv_addr;
+    char *hello = "Hello from client";
     char buffer[1024] = {0};
-    char *message = "Hello from Server";
-
-    // Create Socket
-    if ((serverDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        perror("SOCKET_FAILED");
-        exit(EXIT_FAILURE);
+        printf("\n Socket creation error \n");
+        return -1;
     }
 
-    if (setsockopt(serverDescriptor, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
     {
-        perror("SETSOCKET");
-        exit(EXIT_FAILURE);
+        printf("\nInvalid address/ Address not supported \n");
+        return -1;
     }
 
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
-
-    // Binding the Socket
-
-    if ((bind(serverDescriptor, (struct sockaddr *)&address, sizeof(address)) < 0))
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        perror("BINDING_FAILED");
-        exit(EXIT_FAILURE);
+        printf("\nConnection Failed \n");
+        return -1;
     }
-
-    if (listen(serverDescriptor, 3) < 0)
-    {
-        perror("LISTEN");
-        exit(EXIT_FAILURE);
-    }
-
-    if ((newSocket = accept(serverDescriptor, (struct sockaddr *)&address, (socklen_t *)&address)) < 0)
-    {
-        perror("ACCEPT");
-        exit(EXIT_FAILURE);
-    }
-
-    valueRead = read(newSocket, buffer, 1023);
+    send(sock, hello, strlen(hello), 0);
+    printf("Hello message sent\n");
+    valread = read(sock, buffer, 1024);
     printf("%s\n", buffer);
-    send(newSocket, message, strlen(message), 0);
-    printf("Message Sent!");
     return 0;
 }
